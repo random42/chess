@@ -1,0 +1,13 @@
+{
+  "name": "chess",
+  "version": "1.0.0",
+  "description": "",
+  "main": "graphics.js",
+  "dependencies": {
+    "browserify": "^14.4.0",
+    "tsify": "^3.0.1"
+  },
+  "devDependencies": {},
+  "author": "Roberto Sero",
+  "license": "ISC"
+}
