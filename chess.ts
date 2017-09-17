@@ -25,6 +25,63 @@ export class Game {
 		canvas.canvas.onclick = playClick;
 	}
 
+	isOver() : boolean {
+		return this.isCheckmate() || this.isStalemate() || this.isInsufficientMaterial() || this.fiftyMovesRule();
+	}
+	// 
+	// isThreefoldRepetition() : boolean  {
+	// 	if (this.positions.length > )
+	// }
+
+	isCheck() : boolean {
+		if (this.board.kingThreat(this.board.turn)) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	isCheckmate() : boolean {
+		if (this.isCheck() && this.legalMoves.length == 0) {
+			console.log('Checkmate!');
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	isStalemate() : boolean {
+		if (!this.isCheck() && this.legalMoves.length == 0) {
+			console.log('Draw for stalemate!');
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	isInsufficientMaterial() : boolean {
+		if (this.board.isInsufficientMaterial()) {
+			console.log('Draw for insufficient material.');
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	fiftyMovesRule() : boolean {
+		if (this.moveCounter == 50) {
+			console.log('50 move rule');
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
 	findMovesFromSquare(square : Square) : Move[] {
 		var ret : Move[] = []
 		for (let move of this.legalMoves) {
@@ -78,8 +135,11 @@ export class Game {
 		this.board.turn = !this.board.turn;
 		canvas.update();
 		this.findMoves();
+		if (this.isOver()) {canvas.canvas.onclick = undefined}
+		else {
+			if (this.isCheck()) {console.log('Check!')}
+		}
 	}
-
 
 	startGame() : void {
 		this.board.startingPosition();
@@ -117,7 +177,29 @@ export class Board {
 		}
 	}
 
-
+	isInsufficientMaterial() : boolean {
+		var pieces : Piece[] = [];
+		for (let a of this.board) {
+			for (let b of a) {
+				if (!b.isEmpty()) {
+					pieces.push(b.piece);
+				}
+			}
+		}
+		if (pieces.length == 3) {
+			for (let piece of pieces) {
+				if (piece.type != 6 && (piece.type == 3 || piece.type == 2)) {
+					return true;
+				}
+			}
+		}
+		if (pieces.length == 2) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 
 	startingPosition() : void {
 		for (let a of this.board) {

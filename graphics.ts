@@ -96,7 +96,6 @@ export class Canvas {
 			let p = this.squareToPx(m.to);
 			let x = Math.round(p.x+(this.dist/3));
 			let y = Math.round(p.y+(this.dist/4));
-			console.log(x%this.dist);
 			let dist = ((this.dist/2)-(x%this.dist))*2;
 			this.ctx.drawImage(img,x,y,dist,dist);
 		}
@@ -171,6 +170,9 @@ function startGame(board : Board)  {
 	game.board.searchForKings();
 	document.getElementById("form").style.display = 'none';
 	game.findMoves();
+	if (game.isOver()) {
+		canvas.canvas.onclick = undefined;
+	}
 }
 
 function pieceById(id : number) : Piece{
