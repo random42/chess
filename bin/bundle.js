@@ -1,27 +1,34 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var graphics_1 = require("./graphics");
-var graphics_2 = require("./graphics");
 var Game = (function () {
-    function Game(white, black) {
-        this.whitePlayer = white;
-        this.blackPlayer = black;
+    function Game(board) {
         this.moveCounter = 0;
         this.positions = [];
         this.moves = [];
-        this.board = new Board();
-        graphics_2.canvas.canvas.onclick = graphics_1.playClick;
+        if (board) {
+            this.lastPosition = board;
+            this.positions.push(board.clone());
+        }
+        else {
+            this.lastPosition = new Position('start');
+        }
     }
     Game.prototype.isOver = function () {
-        return this.isCheckmate() || this.isStalemate() || this.isInsufficientMaterial() || this.fiftyMovesRule();
+        if (this.lastPosition.isOver()) {
+            return this.lastPosition.isOver();
+        }
+        else {
+            if (this.fiftyMovesRule()) {
+                return 'Game drawn for 50 moves rule.';
+            }
+            else {
+                return undefined;
+            }
+        }
     };
-    // 
-    // isThreefoldRepetition() : boolean  {
-    // 	if (this.positions.length > )
-    // }
     Game.prototype.isCheck = function () {
-        if (this.board.kingThreat(this.board.turn)) {
+        if (this.lastPosition.kingThreat(this.lastPosition.turn)) {
             return true;
         }
         else {
@@ -29,40 +36,16 @@ var Game = (function () {
         }
     };
     Game.prototype.isCheckmate = function () {
-        if (this.isCheck() && this.legalMoves.length == 0) {
-            console.log('Checkmate!');
-            return true;
-        }
-        else {
-            return false;
-        }
+        return this.lastPosition.isCheckmate();
     };
     Game.prototype.isStalemate = function () {
-        if (!this.isCheck() && this.legalMoves.length == 0) {
-            console.log('Draw for stalemate!');
-            return true;
-        }
-        else {
-            return false;
-        }
+        return this.lastPosition.isStalemate();
     };
     Game.prototype.isInsufficientMaterial = function () {
-        if (this.board.isInsufficientMaterial()) {
-            console.log('Draw for insufficient material.');
-            return true;
-        }
-        else {
-            return false;
-        }
+        return this.lastPosition.isInsufficientMaterial();
     };
     Game.prototype.fiftyMovesRule = function () {
-        if (this.moveCounter == 50) {
-            console.log('50 move rule');
-            return true;
-        }
-        else {
-            return false;
-        }
+        return this.moveCounter == 50;
     };
     Game.prototype.findMovesFromSquare = function (square) {
         var ret = [];
@@ -75,7 +58,35 @@ var Game = (function () {
         return ret;
     };
     Game.prototype.findMoves = function () {
-        this.legalMoves = this.board.legalMoves();
+        this.legalMoves = this.lastPosition.legalMoves;
+    };
+    Game.prototype.rightToCastle = function (move) {
+        if (move.pieceType == 6) {
+            if (this.lastPosition.turn) {
+                this.lastPosition.whiteLong = false;
+                this.lastPosition.whiteShort = false;
+            }
+            else {
+                this.lastPosition.blackLong = false;
+                this.lastPosition.blackShort = false;
+            }
+        }
+        if (this.lastPosition.turn) {
+            if (this.lastPosition.whiteLong && move.pieceType == 4 && move.from.x == 0 && move.from.y == 0) {
+                this.lastPosition.whiteLong = false;
+            }
+            if (this.lastPosition.whiteShort && move.pieceType == 4 && move.from.x == 7 && move.from.y == 0) {
+                this.lastPosition.whiteShort = false;
+            }
+        }
+        else {
+            if (this.lastPosition.blackLong && move.pieceType == 4 && move.from.x == 0 && move.from.y == 7) {
+                this.lastPosition.blackLong = false;
+            }
+            if (this.lastPosition.blackShort && move.pieceType == 4 && move.from.x == 7 && move.from.y == 7) {
+                this.lastPosition.blackShort = false;
+            }
+        }
     };
     Game.prototype.playMove = function (move) {
         if (move.isCapture || move.pieceType == 1) {
@@ -84,67 +95,38 @@ var Game = (function () {
         else {
             this.moveCounter++;
         }
-        this.positions.push(this.board.clone());
         this.moves.push(move);
-        this.board.lastMove = move;
-        //right to castle code
-        if (move.pieceType == 6) {
-            if (this.board.turn) {
-                this.board.whiteLong = false;
-                this.board.whiteShort = false;
-            }
-            else {
-                this.board.blackLong = false;
-                this.board.blackShort = false;
-            }
-        }
-        if (this.board.turn) {
-            if (this.board.whiteLong && move.pieceType == 4 && move.from.x == 0 && move.from.y == 0) {
-                this.board.whiteLong = false;
-            }
-            if (this.board.whiteShort && move.pieceType == 4 && move.from.x == 7 && move.from.y == 0) {
-                this.board.whiteShort = false;
-            }
-        }
-        else {
-            if (this.board.blackLong && move.pieceType == 4 && move.from.x == 0 && move.from.y == 7) {
-                this.board.blackLong = false;
-            }
-            if (this.board.blackShort && move.pieceType == 4 && move.from.x == 7 && move.from.y == 7) {
-                this.board.blackShort = false;
-            }
-        }
-        //before moving
-        this.board.move(move);
+        this.lastPosition.lastMove = move;
+        this.rightToCastle(move);
+        this.lastPosition.move(move);
         //after moving
-        this.board.turn = !this.board.turn;
-        graphics_2.canvas.update();
+        this.lastPosition.turn = !this.lastPosition.turn;
         this.findMoves();
+        this.positions.push(this.lastPosition.clone());
         if (this.isOver()) {
-            graphics_2.canvas.canvas.onclick = undefined;
+            console.log(this.isOver());
         }
         else {
             if (this.isCheck()) {
-                console.log('Check!');
+                console.log('check');
             }
         }
     };
     Game.prototype.startGame = function () {
-        this.board.startingPosition();
-        graphics_2.canvas.position = this.board;
-        graphics_2.canvas.update();
+        this.lastPosition.startingPosition();
         this.findMoves();
+        this.positions.push(this.lastPosition.clone());
     };
     Game.prototype.print = function () {
-        document.write(this.blackPlayer + '<br><br>');
-        this.board.print();
-        document.write('<br>' + this.whitePlayer);
+        document.write(this.black + '<br><br>');
+        this.lastPosition.print();
+        document.write('<br>' + this.white);
     };
     return Game;
 }());
 exports.Game = Game;
-var Board = (function () {
-    function Board() {
+var Position = (function () {
+    function Position(mode) {
         this.board = [];
         for (var i = 0; i < 8; i++) {
             this.board[i] = [];
@@ -152,8 +134,50 @@ var Board = (function () {
                 this.board[i][j] = new Square(i, j);
             }
         }
+        if (mode && mode === 'start') {
+            this.startingPosition();
+        }
     }
-    Board.prototype.isInsufficientMaterial = function () {
+    Position.prototype.isOver = function () {
+        if (this.isCheckmate()) {
+            return 'Checkmate';
+        }
+        if (this.isStalemate()) {
+            return 'Stalemate';
+        }
+        if (this.isInsufficientMaterial()) {
+            return 'Game drawn for insufficient material.';
+        }
+        else {
+            return undefined;
+        }
+    };
+    Position.prototype.isCheck = function () {
+        if (this.kingThreat(this.turn)) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    };
+    Position.prototype.isCheckmate = function () {
+        if (this.isCheck() && this.legalMoves.length == 0) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    };
+    Position.prototype.isStalemate = function () {
+        if (!this.isCheck() && this.legalMoves.length == 0) {
+            console.log('Draw for stalemate!');
+            return true;
+        }
+        else {
+            return false;
+        }
+    };
+    Position.prototype.isInsufficientMaterial = function () {
         var pieces = [];
         for (var _i = 0, _a = this.board; _i < _a.length; _i++) {
             var a = _a[_i];
@@ -179,7 +203,7 @@ var Board = (function () {
             return false;
         }
     };
-    Board.prototype.startingPosition = function () {
+    Position.prototype.startingPosition = function () {
         for (var _i = 0, _a = this.board; _i < _a.length; _i++) {
             var a = _a[_i];
             for (var _b = 0, a_2 = a; _b < a_2.length; _b++) {
@@ -195,7 +219,7 @@ var Board = (function () {
         this.whiteKing = this.board[4][0];
         this.blackKing = this.board[4][7];
     };
-    Board.prototype.print = function () {
+    Position.prototype.print = function () {
         for (var y = 7; y >= 0; y--) {
             for (var x = 0; x < 8; x++) {
                 document.write(this.board[x][y].print() + '\t');
@@ -203,7 +227,7 @@ var Board = (function () {
             document.write('<br>');
         }
     };
-    Board.prototype.searchForKings = function () {
+    Position.prototype.searchForKings = function () {
         for (var _i = 0, _a = this.board; _i < _a.length; _i++) {
             var a = _a[_i];
             for (var _b = 0, a_3 = a; _b < a_3.length; _b++) {
@@ -219,7 +243,7 @@ var Board = (function () {
             }
         }
     };
-    Board.prototype.move = function (move) {
+    Position.prototype.move = function (move) {
         var from = this.board[move.from.x][move.from.y];
         var to = this.board[move.to.x][move.to.y];
         switch (move.type) {
@@ -257,10 +281,10 @@ var Board = (function () {
         }
         this.searchForKings();
     };
-    Board.prototype.printControlledSquares = function (x, y) {
+    Position.prototype.printControlledSquares = function (x, y) {
         var a = this.controls(this.board[x][y]);
     };
-    Board.prototype.kingThreat = function (side) {
+    Position.prototype.kingThreat = function (side) {
         var threat = false;
         var king;
         if (side) {
@@ -288,7 +312,7 @@ var Board = (function () {
         }
         return threat;
     };
-    Board.prototype.legalMovesOf = function (from) {
+    Position.prototype.legalMovesOf = function (from) {
         if (from.isEmpty() || from.piece.side != this.turn) {
             return undefined;
         }
@@ -375,7 +399,7 @@ var Board = (function () {
             return this.testMoves(moves);
         }
     };
-    Board.prototype.legalMoves = function () {
+    Position.prototype.findMoves = function () {
         var moves = [];
         for (var _i = 0, _a = this.board; _i < _a.length; _i++) {
             var a = _a[_i];
@@ -390,21 +414,21 @@ var Board = (function () {
                 }
             }
         }
-        return moves;
+        this.legalMoves = moves;
     };
-    Board.prototype.testMoves = function (cand) {
+    Position.prototype.testMoves = function (cand) {
         var r = [];
         for (var _i = 0, cand_1 = cand; _i < cand_1.length; _i++) {
             var move = cand_1[_i];
-            var newBoard = this.clone();
-            newBoard.move(move);
-            if (!newBoard.kingThreat(this.turn)) {
+            var newPosition = this.clone();
+            newPosition.move(move);
+            if (!newPosition.kingThreat(this.turn)) {
                 r.push(move);
             }
         }
         return r;
     };
-    Board.prototype.canCastle = function (side) {
+    Position.prototype.canCastle = function (side) {
         if (this.turn) {
             if (side) {
                 if (this.whiteShort) {
@@ -442,7 +466,7 @@ var Board = (function () {
             }
         }
     };
-    Board.prototype.isControlled = function (s, side) {
+    Position.prototype.isControlled = function (s, side) {
         for (var _i = 0, _a = this.board; _i < _a.length; _i++) {
             var a = _a[_i];
             for (var _b = 0, a_6 = a; _b < a_6.length; _b++) {
@@ -456,14 +480,14 @@ var Board = (function () {
         }
         return false;
     };
-    Board.prototype.findSquare = function (arr, s) {
+    Position.prototype.findSquare = function (arr, s) {
         var b = false;
         for (var i = 0; i < arr.length && !b; i++) {
             b = (arr[i] == s);
         }
         return b;
     };
-    Board.pop = function (arr, index) {
+    Position.pop = function (arr, index) {
         var r = [];
         for (var i = 0; i < index; i++) {
             r.push(arr[i]);
@@ -473,7 +497,7 @@ var Board = (function () {
         }
         return r;
     };
-    Board.prototype.controls = function (from) {
+    Position.prototype.controls = function (from) {
         var to = [];
         if (from.isEmpty()) {
             return undefined;
@@ -674,13 +698,13 @@ var Board = (function () {
             }
         }
     };
-    Board.prototype.push = function (x, y, array) {
+    Position.prototype.push = function (x, y, array) {
         if (x < 8 && x >= 0 && y < 8 && y >= 0) {
             array.push(this.board[x][y]);
         }
     };
-    Board.prototype.clone = function () {
-        var r = new Board();
+    Position.prototype.clone = function () {
+        var r = new Position();
         for (var a in r.board) {
             for (var b in r.board[a]) {
                 r.board[a][b].piece = this.board[a][b].piece;
@@ -694,9 +718,9 @@ var Board = (function () {
         r.searchForKings();
         return r;
     };
-    return Board;
+    return Position;
 }());
-exports.Board = Board;
+exports.Position = Position;
 var Square = (function () {
     function Square(x, y, p) {
         this.x = x;
@@ -996,7 +1020,7 @@ function clone(obj) {
     }
 }
 
-},{"./graphics":2}],2:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var chess_1 = require("./chess");
@@ -1018,7 +1042,7 @@ var Canvas = (function () {
         this.canvas.height = 500;
         this.canvas.width = 500;
         this.mode = setting;
-        this.position = new chess_3.Board();
+        this.position = new chess_3.Position();
     }
     Canvas.prototype.isAMove = function (square) {
         if (this.moves) {
@@ -1115,9 +1139,12 @@ function getMousePos(ev) {
 }
 function startNewGame() {
     exports.canvas = new Canvas('game');
-    game = new chess_2.Game('Marco', 'Luca');
+    game = new chess_2.Game();
     document.getElementById("form").style.display = 'none';
     game.startGame();
+    exports.canvas.position = game.lastPosition;
+    exports.canvas.update();
+    exports.canvas.canvas.onclick = playClick;
 }
 function setPosition() {
     exports.canvas = new Canvas('setting');
@@ -1151,12 +1178,13 @@ function createPosition() {
     exports.canvas.mode = 'game';
     startGame(exports.canvas.position);
 }
-function startGame(board) {
-    game = new chess_2.Game('x', 'y');
-    game.board = board;
-    game.board.searchForKings();
+function startGame(lastPosition) {
+    game = new chess_2.Game(lastPosition);
+    game.lastPosition.searchForKings();
     document.getElementById("form").style.display = 'none';
     game.findMoves();
+    game.lastPosition.findMoves();
+    exports.canvas.canvas.onclick = playClick;
     if (game.isOver()) {
         exports.canvas.canvas.onclick = undefined;
     }
@@ -1176,6 +1204,11 @@ function playClick() {
     var move = exports.canvas.isAMove(square);
     if (move) {
         game.playMove(move);
+        exports.canvas.update();
+        if (game.isOver()) {
+            exports.canvas.canvas.onclick = undefined;
+        }
+        ;
     }
     else {
         var moves = game.findMovesFromSquare(square);
@@ -1192,7 +1225,6 @@ function playClick() {
         }
     }
 }
-exports.playClick = playClick;
 document.getElementById("create").onclick = setPosition;
 document.getElementById("start").onclick = startNewGame;
 document.getElementById("submit").onclick = createPosition;

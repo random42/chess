@@ -1,6 +1,6 @@
 import { Piece } from "./chess";
 import { Game } from "./chess";
-import { Board } from "./chess";
+import { Position } from "./chess";
 import { Square } from "./chess";
 import { Move } from './chess';
 
@@ -12,7 +12,7 @@ export class Canvas {
 	canvas : any = document.getElementById("board");
 	ctx = this.canvas.getContext("2d");
 	dist = this.canvas.clientWidth/8;
-	position : Board;
+	position : Position;
 	mode : string;
 	selectedSquare : Square;
 	moves : Move[];
@@ -23,7 +23,7 @@ export class Canvas {
 		this.canvas.height = 500;
 		this.canvas.width = 500;
 		this.mode = setting;
-		this.position = new Board();
+		this.position = new Position();
 	}
 
 	isAMove(square : Square) : Move {
@@ -125,9 +125,12 @@ function getMousePos(ev) : Point {
 
 function startNewGame() {
 	canvas = new Canvas('game');
-	game = new Game('Marco','Luca');
+	game = new Game();
 	document.getElementById("form").style.display = 'none';
 	game.startGame();
+	canvas.position = game.lastPosition;
+	canvas.update();
+	canvas.canvas.onclick = playClick;
 }
 
 function setPosition() {
@@ -164,12 +167,13 @@ function createPosition() {
 	startGame(canvas.position);
 }
 
-function startGame(board : Board)  {
-	game = new Game('x','y');
-	game.board = board;
-	game.board.searchForKings();
+function startGame(lastPosition : Position)  {
+	game = new Game(lastPosition);
+	game.lastPosition.searchForKings();
 	document.getElementById("form").style.display = 'none';
 	game.findMoves();
+	game.lastPosition.findMoves();
+	canvas.canvas.onclick = playClick;
 	if (game.isOver()) {
 		canvas.canvas.onclick = undefined;
 	}
@@ -184,13 +188,15 @@ function pieceById(id : number) : Piece{
 	}
 }
 
-export function playClick() {
+function playClick() {
 	var p = getMousePos(window.event);
 	var square = canvas.pxToSquare(p.x,p.y);
 	canvas.update();
 	var move = canvas.isAMove(square);
 	if (move) {
 		game.playMove(move);
+		canvas.update();
+		if (game.isOver()) {canvas.canvas.onclick = undefined};
 	}
 	else {
 		var moves = game.findMovesFromSquare(square);

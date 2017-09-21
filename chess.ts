@@ -1,40 +1,183 @@
-import { Canvas } from './graphics';
-import { playClick } from './graphics';
-import { canvas } from './graphics';
-
-
 export class Game {
-	board : Board;
+	lastPosition : Position;
 	moves : Move[];
-	positions : Board[];
-	legalMoves : Move[];
-	whitePlayer : string;
-	blackPlayer : string;
+	positions : Position[];
+	white : string;
+	black : string;
 	whiteRating : number;
 	blackRating : number;
-	moveCounter : number;
+	private legalMoves : Move[];
+	private moveCounter : number;
 
 
-	constructor(white : string, black : string,) {
-		this.whitePlayer = white;
-		this.blackPlayer = black;
+	constructor(board? : Position) {
 		this.moveCounter = 0;
 		this.positions = [];
 		this.moves = [];
-		this.board = new Board();
-		canvas.canvas.onclick = playClick;
+		if (board) {
+			this.lastPosition = board;
+			this.positions.push(board.clone());
+		}
+		else {
+			this.lastPosition = new Position('start');
+		}
 	}
 
-	isOver() : boolean {
-		return this.isCheckmate() || this.isStalemate() || this.isInsufficientMaterial() || this.fiftyMovesRule();
+	isOver() : string {
+		if (this.lastPosition.isOver()) {return this.lastPosition.isOver()}
+		else {
+			if (this.fiftyMovesRule()) {
+				return 'Game drawn for 50 moves rule.';
+			}
+			else {
+				return undefined;
+			}
+		}
 	}
-	// 
-	// isThreefoldRepetition() : boolean  {
-	// 	if (this.positions.length > )
-	// }
 
 	isCheck() : boolean {
-		if (this.board.kingThreat(this.board.turn)) {
+		if (this.lastPosition.kingThreat(this.lastPosition.turn)) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	isCheckmate() : boolean {
+		return this.lastPosition.isCheckmate();
+	}
+
+	isStalemate() : boolean {
+		return this.lastPosition.isStalemate();
+	}
+
+	isInsufficientMaterial() : boolean {
+		return this.lastPosition.isInsufficientMaterial();
+	}
+
+	fiftyMovesRule() : boolean {
+		return this.moveCounter == 50;
+	}
+
+	findMovesFromSquare(square : Square) : Move[] {
+		var ret : Move[] = []
+		for (let move of this.legalMoves) {
+			if (move.from == square) {
+				ret.push(move);
+			}
+		}
+		return ret;
+	}
+
+	findMoves() : void {
+		this.legalMoves = this.lastPosition.legalMoves;
+	}
+
+	rightToCastle(move : Move) : void {
+		if (move.pieceType == 6) {
+			if (this.lastPosition.turn) {
+				this.lastPosition.whiteLong = false;
+				this.lastPosition.whiteShort = false;
+			}
+			else {
+				this.lastPosition.blackLong = false;
+				this.lastPosition.blackShort = false;
+			}
+		}
+		if (this.lastPosition.turn) {
+			if (this.lastPosition.whiteLong && move.pieceType == 4 && move.from.x == 0 && move.from.y == 0) {
+				this.lastPosition.whiteLong = false;
+			}
+			if (this.lastPosition.whiteShort && move.pieceType == 4 && move.from.x == 7 && move.from.y == 0) {
+				this.lastPosition.whiteShort = false;
+			}
+		}
+		else {
+			if (this.lastPosition.blackLong && move.pieceType == 4 && move.from.x == 0 && move.from.y == 7) {
+				this.lastPosition.blackLong = false;
+			}
+			if (this.lastPosition.blackShort && move.pieceType == 4 && move.from.x == 7 && move.from.y == 7) {
+				this.lastPosition.blackShort = false;
+			}
+		}
+	}
+
+	playMove(move : Move) : void {
+		if (move.isCapture || move.pieceType == 1) {this.moveCounter = 0}
+		else {this.moveCounter++}
+		this.moves.push(move);
+		this.lastPosition.lastMove = move;
+		this.rightToCastle(move);
+		this.lastPosition.move(move);
+		//after moving
+		this.lastPosition.turn = !this.lastPosition.turn;
+		this.findMoves();
+		this.positions.push(this.lastPosition.clone());
+		if (this.isOver()) {console.log(this.isOver())}
+		else {
+			if (this.isCheck()) {
+				console.log('check');
+			}
+		}
+	}
+
+	startGame() : void {
+		this.lastPosition.startingPosition();
+		this.findMoves();
+		this.positions.push(this.lastPosition.clone());
+	}
+
+	print() : void {
+		document.write(this.black + '<br><br>');
+		this.lastPosition.print();
+		document.write('<br>' + this.white);
+
+	}
+}
+
+export class Position {
+	board : Square[][];
+	turn : boolean;
+	whiteLong : boolean;
+	whiteShort : boolean;
+	blackLong : boolean;
+	blackShort : boolean;
+	whiteKing : Square;
+	blackKing : Square;
+	lastMove : Move;
+	legalMoves : Move[];
+
+	constructor(mode? : string) {
+		this.board = [];
+		for (let i = 0; i < 8;i++) {
+			this.board[i] = [];
+			for (let j = 0; j < 8;j++) {
+				this.board[i][j] = new Square(i,j);
+			}
+		}
+		if (mode && mode === 'start') {
+			this.startingPosition();
+		}
+	}
+
+	isOver() : string {
+		if (this.isCheckmate()) {
+			return 'Checkmate';
+		}
+		if (this.isStalemate()) {
+			return 'Stalemate';
+		}
+		if (this.isInsufficientMaterial()) {
+			return 'Game drawn for insufficient material.';
+		}
+		else {
+			return undefined;
+		}
+	}
+
+	isCheck() : boolean {
+		if (this.kingThreat(this.turn)) {
 			return true;
 		}
 		else {
@@ -44,7 +187,7 @@ export class Game {
 
 	isCheckmate() : boolean {
 		if (this.isCheck() && this.legalMoves.length == 0) {
-			console.log('Checkmate!');
+
 			return true;
 		}
 		else {
@@ -59,121 +202,6 @@ export class Game {
 		}
 		else {
 			return false;
-		}
-	}
-
-	isInsufficientMaterial() : boolean {
-		if (this.board.isInsufficientMaterial()) {
-			console.log('Draw for insufficient material.');
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
-
-	fiftyMovesRule() : boolean {
-		if (this.moveCounter == 50) {
-			console.log('50 move rule');
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
-
-	findMovesFromSquare(square : Square) : Move[] {
-		var ret : Move[] = []
-		for (let move of this.legalMoves) {
-			if (move.from == square) {
-				ret.push(move);
-			}
-		}
-		return ret;
-	}
-
-	findMoves() : void {
-		this.legalMoves = this.board.legalMoves();
-	}
-
-	playMove(move : Move) : void {
-		if (move.isCapture || move.pieceType == 1) {this.moveCounter = 0}
-		else {this.moveCounter++}
-		this.positions.push(this.board.clone());
-		this.moves.push(move);
-		this.board.lastMove = move;
-		//right to castle code
-		if (move.pieceType == 6) {
-			if (this.board.turn) {
-				this.board.whiteLong = false;
-				this.board.whiteShort = false;
-			}
-			else {
-				this.board.blackLong = false;
-				this.board.blackShort = false;
-			}
-		}
-		if (this.board.turn) {
-			if (this.board.whiteLong && move.pieceType == 4 && move.from.x == 0 && move.from.y == 0) {
-				this.board.whiteLong = false;
-			}
-			if (this.board.whiteShort && move.pieceType == 4 && move.from.x == 7 && move.from.y == 0) {
-				this.board.whiteShort = false;
-			}
-		}
-		else {
-			if (this.board.blackLong && move.pieceType == 4 && move.from.x == 0 && move.from.y == 7) {
-				this.board.blackLong = false;
-			}
-			if (this.board.blackShort && move.pieceType == 4 && move.from.x == 7 && move.from.y == 7) {
-				this.board.blackShort = false;
-			}
-		}
-		//before moving
-		this.board.move(move);
-		//after moving
-		this.board.turn = !this.board.turn;
-		canvas.update();
-		this.findMoves();
-		if (this.isOver()) {canvas.canvas.onclick = undefined}
-		else {
-			if (this.isCheck()) {console.log('Check!')}
-		}
-	}
-
-	startGame() : void {
-		this.board.startingPosition();
-		canvas.position = this.board;
-		canvas.update();
-		this.findMoves();
-	}
-
-	print() : void {
-		document.write(this.blackPlayer + '<br><br>');
-		this.board.print();
-		document.write('<br>' + this.whitePlayer);
-
-	}
-}
-
-export class Board {
-	board : Square[][];
-	turn : boolean;
-	whiteLong : boolean;
-	whiteShort : boolean;
-	blackLong : boolean;
-	blackShort : boolean;
-	whiteKing : Square;
-	blackKing : Square;
-	lastMove : Move;
-
-	constructor() {
-		this.board = [];
-		for (let i = 0; i < 8;i++) {
-			this.board[i] = [];
-			for (let j = 0; j < 8;j++) {
-				this.board[i][j] = new Square(i,j);
-			}
 		}
 	}
 
@@ -401,7 +429,7 @@ export class Board {
 		}
 	}
 
-	legalMoves() : Move[] {
+	findMoves() : void {
 		var moves : Move[] = [];
 		for (let a of this.board) {
 			for (let b of a) {
@@ -413,15 +441,15 @@ export class Board {
 				}
 			}
 		}
-		return moves;
+		this.legalMoves = moves;
 	}
 
 	testMoves(cand : Move[]) : Move[] {
 		var r : Move[] = [];
 		for (let move of cand) {
-			let newBoard = this.clone();
-			newBoard.move(move);
-			if (!newBoard.kingThreat(this.turn)) {
+			let newPosition = this.clone();
+			newPosition.move(move);
+			if (!newPosition.kingThreat(this.turn)) {
 				r.push(move);
 			}
 		}
@@ -707,8 +735,8 @@ export class Board {
 		}
 	}
 
-	clone() : Board {
-		var r = new Board();
+	clone() : Position {
+		var r = new Position();
 		for (let a in r.board) {
 			for (let b in r.board[a]) {
 				r.board[a][b].piece = this.board[a][b].piece;
