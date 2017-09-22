@@ -13,16 +13,13 @@ export class Canvas {
 	ctx = this.canvas.getContext("2d");
 	dist = this.canvas.clientWidth/8;
 	position : Position;
-	mode : string;
 	selectedSquare : Square;
 	moves : Move[];
-	//mode : 'setting','game'
 	static selectedPiece : Piece;
 
-	constructor(setting : string){
+	constructor(){
 		this.canvas.height = 500;
 		this.canvas.width = 500;
-		this.mode = setting;
 		this.position = new Position();
 	}
 
@@ -124,17 +121,17 @@ function getMousePos(ev) : Point {
 }
 
 function startNewGame() {
-	canvas = new Canvas('game');
+	console.log('start');
+	canvas = new Canvas();
 	game = new Game();
 	document.getElementById("form").style.display = 'none';
-	game.startGame();
 	canvas.position = game.lastPosition;
 	canvas.update();
 	canvas.canvas.onclick = playClick;
 }
 
 function setPosition() {
-	canvas = new Canvas('setting');
+	canvas = new Canvas();
 	canvas.canvas.onclick = settingClick;
 	var x = 2;
 	canvas.drawBoard();
@@ -163,7 +160,6 @@ function createPosition() {
 	canvas.position.whiteShort = (<HTMLInputElement>document.getElementById('whiteShort')).checked;
 	canvas.position.blackLong = (<HTMLInputElement>document.getElementById('blackLong')).checked;
 	canvas.position.blackShort = (<HTMLInputElement>document.getElementById('blackShort')).checked;
-	canvas.mode = 'game';
 	startGame(canvas.position);
 }
 
@@ -171,8 +167,6 @@ function startGame(lastPosition : Position)  {
 	game = new Game(lastPosition);
 	game.lastPosition.searchForKings();
 	document.getElementById("form").style.display = 'none';
-	game.findMoves();
-	game.lastPosition.findMoves();
 	canvas.canvas.onclick = playClick;
 	if (game.isOver()) {
 		canvas.canvas.onclick = undefined;
@@ -195,8 +189,9 @@ function playClick() {
 	var move = canvas.isAMove(square);
 	if (move) {
 		game.playMove(move);
+		canvas.moves = undefined;
 		canvas.update();
-		if (game.isOver()) {canvas.canvas.onclick = undefined};
+		if (game.isOver()) {canvas.canvas.onclick = undefined}
 	}
 	else {
 		var moves = game.findMovesFromSquare(square);
@@ -214,8 +209,32 @@ function playClick() {
 	}
 }
 
+function playAtSpeed(milliseconds : number) {
+	if (!game.isOver()) {
+		setTimeout(function() {
+			game.playRandomly();
+			canvas.update();
+			playAtSpeed(milliseconds);
+		},milliseconds);
+	}
+	else {
+		console.log(game.PGN);
+		console.log(game.termination);
+	}
+}
+
+function playRandomly() {
+	if (!game) {
+		startNewGame();
+	}
+	playAtSpeed(50);
+}
+
+
+
 document.getElementById("create").onclick = setPosition;
 document.getElementById("start").onclick = startNewGame;
 document.getElementById("submit").onclick = createPosition;
-export var canvas : Canvas;
+document.getElementById("random").onclick = playRandomly;
+var canvas : Canvas;
 var game : Game;

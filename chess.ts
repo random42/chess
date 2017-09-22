@@ -2,10 +2,18 @@ export class Game {
 	lastPosition : Position;
 	moves : Move[];
 	positions : Position[];
+
+	event : string;
+	site : string;
+	round : string;
+	date : string;
 	white : string;
 	black : string;
 	whiteRating : number;
 	blackRating : number;
+	result : string;
+	termination : string;
+	PGN : string;
 	private legalMoves : Move[];
 	private moveCounter : number;
 
@@ -21,17 +29,63 @@ export class Game {
 		else {
 			this.lastPosition = new Position('start');
 		}
+		this.findMoves();
 	}
 
-	isOver() : string {
-		if (this.lastPosition.isOver()) {return this.lastPosition.isOver()}
+	get legMoves() : Move[] {
+		return this.legalMoves;
+	}
+
+	playRandomly() : void {
+		this.playMove(this.legalMoves[Math.floor(Math.random() * this.legalMoves.length)]);
+	}
+
+	endOfGame(result? : string, termination? : string) : void {
+		if (result && termination) {
+			this.result = result;
+			this.termination = termination;
+		}
 		else {
 			if (this.fiftyMovesRule()) {
-				return 'Game drawn for 50 moves rule.';
+				this.result = '1/2-1/2';
+				this.termination = '50 moves rule';
 			}
-			else {
-				return undefined;
+			if (this.isCheckmate()) {
+				if (this.lastPosition.turn) {
+					this.result = '0-1';
+				}
+				else {
+					this.result = '1-0';
+				}
+				this.termination = 'Checkmate';
 			}
+			if (this.isStalemate()) {
+				this.result = '1/2-1/2';
+				this.termination = 'Stalemate';
+			}
+			if (this.isInsufficientMaterial()) {
+				this.result = '1/2-1/2';
+				this.termination = 'Insufficient material';
+			}
+		}
+
+		this.createPGN();
+	}
+
+	createPGN() : void {
+		this.PGN = '';
+		if (this.result) {
+			this.PGN += "[Result ${this.result}]";
+		}
+	}
+
+	isOver() : boolean {
+		if (this.lastPosition.isOver() || this.fiftyMovesRule()) {
+			this.endOfGame();
+			return true;
+		}
+		else {
+			return false;
 		}
 	}
 
@@ -71,6 +125,7 @@ export class Game {
 	}
 
 	findMoves() : void {
+		this.lastPosition.findMoves();
 		this.legalMoves = this.lastPosition.legalMoves;
 	}
 
@@ -109,23 +164,23 @@ export class Game {
 		this.moves.push(move);
 		this.lastPosition.lastMove = move;
 		this.rightToCastle(move);
+		//before moving
 		this.lastPosition.move(move);
 		//after moving
 		this.lastPosition.turn = !this.lastPosition.turn;
 		this.findMoves();
 		this.positions.push(this.lastPosition.clone());
-		if (this.isOver()) {console.log(this.isOver())}
-		else {
-			if (this.isCheck()) {
-				console.log('check');
+		if (this.isOver()) {
+			if (this.termination === 'Checkmate') {
+				move.name += '#';
 			}
 		}
-	}
-
-	startGame() : void {
-		this.lastPosition.startingPosition();
-		this.findMoves();
-		this.positions.push(this.lastPosition.clone());
+		else {
+			if (this.isCheck()) {
+				move.name += '+';
+			}
+		}
+		console.log(move.toString());
 	}
 
 	print() : void {
@@ -159,21 +214,13 @@ export class Position {
 		if (mode && mode === 'start') {
 			this.startingPosition();
 		}
+		this.findMoves();
 	}
 
-	isOver() : string {
-		if (this.isCheckmate()) {
-			return 'Checkmate';
-		}
-		if (this.isStalemate()) {
-			return 'Stalemate';
-		}
-		if (this.isInsufficientMaterial()) {
-			return 'Game drawn for insufficient material.';
-		}
-		else {
-			return undefined;
-		}
+
+
+	isOver() : boolean {
+		return this.isCheckmate() || this.isStalemate() || this.isInsufficientMaterial();
 	}
 
 	isCheck() : boolean {
@@ -187,7 +234,6 @@ export class Position {
 
 	isCheckmate() : boolean {
 		if (this.isCheck() && this.legalMoves.length == 0) {
-
 			return true;
 		}
 		else {
@@ -197,7 +243,6 @@ export class Position {
 
 	isStalemate() : boolean {
 		if (!this.isCheck() && this.legalMoves.length == 0) {
-			console.log('Draw for stalemate!');
 			return true;
 		}
 		else {
@@ -293,8 +338,7 @@ export class Position {
 				break;
 			}
 			case 'promotion' : {
-				to.piece = from.piece;
-				to.piece.type = 5;
+				to.piece = new Piece(from.piece.side,5);
 				from.piece = undefined;
 				break;
 			}
@@ -354,7 +398,7 @@ export class Position {
 
 			if (from.piece.type == 1) { // pawns moves
 				if (from.piece.side) {
-					// white pawns
+					//white pawns
 					if (this.board[from.x][from.y+1].isEmpty()) {
 						if (from.y == 6) {
 							//promotion
@@ -859,11 +903,8 @@ export class Move {
 
 	constructor(public from : Square, public to : Square, t : string) {
 		this.pieceType = from.piece.type;
-		this.isCapture = !this.to.isEmpty() || this.type == 'enPassant';
 		this.type = t;
-		if (this.pieceType == 1 && (to.y == 0 || to.y == 7)) {
-			this.type = 'promotion';
-		}
+		this.isCapture = !this.to.isEmpty() || this.type == 'enPassant';
 		this.name = this.giveName();
 	}
 
