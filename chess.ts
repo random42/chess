@@ -5,16 +5,19 @@ export class Game {
 
 	event : string;
 	site : string;
-	round : string;
 	date : string;
+	round : string;
 	white : string;
 	black : string;
+	result : string;
+	time : string;
+	termination : string;
+	FEN : string;
 	whiteRating : number;
 	blackRating : number;
-	result : string;
-	termination : string;
+
 	PGN : string;
-	private legalMoves : Move[];
+	private _legalMoves : Move[];
 	private moveCounter : number;
 
 
@@ -30,10 +33,22 @@ export class Game {
 			this.lastPosition = new Position('start');
 		}
 		this.findMoves();
+		let x = '?';
+		this.event = x;
+		this.site = x;
+		this.date = '????.??.??';
+		this.round = x;
+		this.white = x;
+		this.black = x;
+		this.result = '*';
 	}
 
-	get legMoves() : Move[] {
-		return this.legalMoves;
+	get legalMoves() : Move[] {
+		return this._legalMoves;
+	}
+
+	get turn() : boolean {
+		return this.lastPosition.turn;
 	}
 
 	playRandomly() : void {
@@ -68,20 +83,36 @@ export class Game {
 				this.termination = 'Insufficient material';
 			}
 		}
-
 		this.createPGN();
 	}
 
 	createPGN() : void {
 		this.PGN = '';
-		if (this.result) {
-			this.PGN += "[Result ${this.result}]";
+		this.PGN += '[Event '+this.event+']\n';
+		this.PGN += '[Site '+this.site+']\n';
+		this.PGN += '[Date '+this.date+']\n';
+		this.PGN += '[Round '+this.round+']\n';
+		this.PGN += '[White '+this.white+']\n';
+		this.PGN += '[Black '+this.black+']\n';
+		this.PGN += '[Result '+this.result+']\n';
+		if (this.time) {
+			this.PGN += '[Time '+this.time+']\n';
+		}
+		if (this.termination) {
+			this.PGN += '[Termination '+this.termination+']\n';
+		}
+		let turn = true;
+		for (let i=0;i < this.moves.length;i++) {
+			if (turn) {
+				this.PGN += ((i/2)+1).toString() + '. '
+			}
+			this.PGN += this.moves[i].toString() + ' ';
+			turn = !turn;
 		}
 	}
 
 	isOver() : boolean {
 		if (this.lastPosition.isOver() || this.fiftyMovesRule()) {
-			this.endOfGame();
 			return true;
 		}
 		else {
@@ -125,8 +156,7 @@ export class Game {
 	}
 
 	findMoves() : void {
-		this.lastPosition.findMoves();
-		this.legalMoves = this.lastPosition.legalMoves;
+		this._legalMoves = this.lastPosition.findMoves();
 	}
 
 	rightToCastle(move : Move) : void {
@@ -167,20 +197,17 @@ export class Game {
 		//before moving
 		this.lastPosition.move(move);
 		//after moving
-		this.lastPosition.turn = !this.lastPosition.turn;
 		this.findMoves();
 		this.positions.push(this.lastPosition.clone());
-		if (this.isOver()) {
-			if (this.termination === 'Checkmate') {
-				move.name += '#';
-			}
+		if (this.isCheckmate()) {
+			move.name += "#";
 		}
 		else {
 			if (this.isCheck()) {
-				move.name += '+';
+				move.name += "+";
 			}
 		}
-		console.log(move.toString());
+		if (this.isOver()) {this.endOfGame()}
 	}
 
 	print() : void {
@@ -214,9 +241,7 @@ export class Position {
 		if (mode && mode === 'start') {
 			this.startingPosition();
 		}
-		this.findMoves();
 	}
-
 
 
 	isOver() : boolean {
@@ -338,7 +363,7 @@ export class Position {
 				break;
 			}
 			case 'promotion' : {
-				to.piece = new Piece(from.piece.side,5);
+				to.piece = move.promotionPiece;
 				from.piece = undefined;
 				break;
 			}
@@ -348,6 +373,7 @@ export class Position {
 				break;
 			}
 		}
+		this.turn = !this.turn;
 		this.searchForKings();
 	}
 
@@ -392,7 +418,15 @@ export class Position {
 					// non-legal moves
 				}
 				else {
-					moves.push(new Move(from,squares[i],'normal'));
+					if (from.piece.type == 1 && !squares[i].isEmpty() && (squares[i].y == 7 || squares[i].y == 0)) {
+						moves.push(new Move(from,squares[i],'promotion',new Piece(this.turn,2)));
+						moves.push(new Move(from,squares[i],'promotion',new Piece(this.turn,3)));
+						moves.push(new Move(from,squares[i],'promotion',new Piece(this.turn,4)));
+						moves.push(new Move(from,squares[i],'promotion',new Piece(this.turn,5)));
+					}
+					else {
+						moves.push(new Move(from,squares[i],'normal'));
+					}
 				}
 			}
 
@@ -402,7 +436,10 @@ export class Position {
 					if (this.board[from.x][from.y+1].isEmpty()) {
 						if (from.y == 6) {
 							//promotion
-							moves.push(new Move(from,this.board[from.x][7],'promotion'));
+							moves.push(new Move(from,this.board[from.x][7],'promotion',new Piece(this.turn,2)));
+							moves.push(new Move(from,this.board[from.x][7],'promotion',new Piece(this.turn,3)));
+							moves.push(new Move(from,this.board[from.x][7],'promotion',new Piece(this.turn,4)));
+							moves.push(new Move(from,this.board[from.x][7],'promotion',new Piece(this.turn,5)));
 						}
 						else {
 							moves.push(new Move(from,this.board[from.x][from.y+1],'normal'));
@@ -428,7 +465,10 @@ export class Position {
 					// black pawns
 					if (this.board[from.x][from.y-1].isEmpty()) {
 						if (from.y == 1) {
-							moves.push(new Move(from,this.board[from.x][0],'promotion'));
+							moves.push(new Move(from,this.board[from.x][0],'promotion',new Piece(this.turn,2)));
+							moves.push(new Move(from,this.board[from.x][0],'promotion',new Piece(this.turn,3)));
+							moves.push(new Move(from,this.board[from.x][0],'promotion',new Piece(this.turn,4)));
+							moves.push(new Move(from,this.board[from.x][0],'promotion',new Piece(this.turn,5)));
 						}
 						else {
 							moves.push(new Move(from,this.board[from.x][from.y-1],'normal'));
@@ -469,11 +509,12 @@ export class Position {
 					}
 				}
 			}
-			return this.testMoves(moves);
+			moves = this.testMoves(moves);
+			return moves;
 		}
 	}
 
-	findMoves() : void {
+	findMoves() : Move[] {
 		var moves : Move[] = [];
 		for (let a of this.board) {
 			for (let b of a) {
@@ -485,7 +526,8 @@ export class Position {
 				}
 			}
 		}
-		this.legalMoves = moves;
+		this.legalMoves = this.nameMoves(moves);
+		return moves;
 	}
 
 	testMoves(cand : Move[]) : Move[] {
@@ -498,6 +540,28 @@ export class Position {
 			}
 		}
 		return r;
+	}
+
+	nameMoves(moves : Move[]) : Move[] {
+		let sameMoves : Move[][] = [];
+		let escludi : number[] = [];
+		for (let i=0; i < moves.length-1;i++) {
+			if (!linearSearch(escludi,i)) {
+				sameMoves.push([moves[i]]);
+				for (let j=i+1; j < moves.length;j++) {
+					if (moves[i].name === moves[j].name) {
+						escludi.push(j);
+						sameMoves[sameMoves.length-1].push(moves[j]);
+					}
+				}
+			}
+		}
+		for (let x of sameMoves) {
+			if (x.length > 1) {
+				Move.changeName(x);
+			}
+		}
+		return moves;
 	}
 
 	canCastle(side : boolean) : boolean { // true = kingside & false = queenside
@@ -895,19 +959,21 @@ export class Square {
 export class Move {
 	name : string;
 	pieceType : number;
-	//types: 'normal','longCastle','shortCastle','promotion','enPassant','doublePawn'
 	isCapture : boolean;
 	type : string;
-	promotionPiece : number;
+	promotionPiece : Piece;
+	//types: 'normal','longCastle','shortCastle','promotion','enPassant','doublePawn'
 
-
-	constructor(public from : Square, public to : Square, t : string) {
+	constructor(public from : Square, public to : Square, t : string, piece? : Piece) {
 		this.pieceType = from.piece.type;
 		this.type = t;
 		this.isCapture = !this.to.isEmpty() || this.type == 'enPassant';
+		if (piece !== undefined) {
+			this.promotionPiece = piece;
+		}
+
 		this.name = this.giveName();
 	}
-
 
 	giveName() : string {
 		var name;
@@ -916,13 +982,13 @@ export class Move {
 				if (this.isCapture) {
 					name = (this.from.toString()).substring(0,1) + 'x' + this.to.toString();
 					if (this.type == 'promotion') {
-						name += '=';
+						name += ('='+this.promotionPiece.toString());
 					}
 				}
 				else {
 					name = this.to.toString();
 					if (this.type == 'promotion') {
-						name += '=';
+						name += ('='+this.promotionPiece.toString());
 					}
 				}
 				return name;
@@ -980,23 +1046,46 @@ export class Move {
 	toString() : string {
 		return this.name;
 	}
+
+	static changeName(moves : Move[]) : void {
+		for (let m1 of moves) {
+			let file = false;
+			let rank = false;
+			for (let m2 of moves) {
+				if (m1 !== m2) {
+					if (m1.from.x == m2.from.x) {
+						file = true;
+					}
+					if (m1.from.y == m2.from.y) {
+						rank = true;
+					}
+				}
+			}
+			if (file && rank) {
+				m1.name = m1.name.substring(0,1) + m1.from.toString() + m1.name.substring(1,m1.name.length);
+			}
+			else {
+				if (file) {
+					m1.name = m1.name.substring(0,1) + (m1.from.y+1) + m1.name.substring(1,m1.name.length);
+				}
+				if (rank) {
+					m1.name = m1.name.substring(0,1) + m1.from.toString().substring(0,1) + m1.name.substring(1,m1.name.length);
+				}
+			}
+		}
+	}
+
+	static searchMoveByName(moves : Move[], str : string) : Move {
+		for (let move of moves) {
+			if (move.name === str) {
+				return move;
+			}
+		}
+		return undefined;
+	}
 }
 
 export class Piece {
-	/* types:
-	pawn = 1;
-	knight = 2;
-	bishop = 3;
-	rook = 4;
-	queen = 5;
-	king = 6;
-	*/
-	img : HTMLImageElement = new Image();
-
-	constructor(public side: boolean, public type : number) {
-		this.img.src = 'img/pieces/' + Piece.typeToImg(this.type,this.side) + '.png';
-	}
-
 	/*
 	white = true;
 	black = false;
@@ -1007,47 +1096,28 @@ export class Piece {
 	queen = 5;
 	king = 6;
 	*/
-	toString() : string {
-		if (this.side) {
-			if (this.type == 1) {
-				return 'P';
-			}
-			if (this.type == 2) {
-				return 'N';
-			}
-			if (this.type == 3) {
-				return 'B';
-			}
-			if (this.type == 4) {
-				return 'R';
-			}
-			if (this.type == 5) {
-				return 'Q';
-			}
-			if (this.type == 6) {
-				return 'K';
-			}
 
-		}
-		else {
-			if (this.type == 1) {
-				return '<b>' + 'P' + '</b>';
-			}
-			if (this.type == 2) {
-				return '<b>' + 'N' + '</b>';
-			}
-			if (this.type == 3) {
-				return '<b>' + 'B' + '</b>';
-			}
-			if (this.type == 4) {
-				return '<b>' + 'R' + '</b>';
-			}
-			if (this.type == 5) {
-				return '<b>' + 'Q' + '</b>';
-			}
-			if (this.type == 6) {
-				return '<b>' + 'K' + '</b>';
-			}
+	img : HTMLImageElement = new Image();
+
+	constructor(public side: boolean, public type : number) {
+		this.img.src = 'img/pieces/' + Piece.typeToImg(this.type,this.side) + '.png';
+	}
+
+
+	toString() : string {
+		switch (this.type) {
+			case 1:
+				return 'P';
+			case 2:
+				return 'N';
+			case 3:
+				return 'B';
+			case 4:
+				return 'R';
+			case 5:
+				return 'Q';
+			case 6:
+				return 'K';
 		}
 	}
 
@@ -1087,20 +1157,11 @@ export class Piece {
 	}
 }
 
-function clone(obj) {
-	if (obj === undefined) {
-		return undefined;
-	}
-	else {
-		var r;
-		for (let att in obj) {
-			if (typeof(obj[att]) == 'object') {
-				r[att] = clone(obj[att]);
-			}
-			else {
-				r[att] = obj[att];
-			}
+function linearSearch(array : number[], num : number) : boolean {
+	for (let i = 0;i < array.length;i++) {
+		if (array[i] == num) {
+			return true;
 		}
-		return r;
 	}
+	return false;
 }

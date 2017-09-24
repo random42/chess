@@ -2,24 +2,21 @@
 <html lang="en">
 	<body>
 	<link rel="stylesheet" type="text/css" href="chess.css">
-		<div id="promoteWhite">
-
-		</div>
-		<canvas id="board" width="500" height="500" style="border:1px solid #000000;"></canvas>
+		<canvas id="board" width="512" height="512" style="border:1px solid #000000;"></canvas>
 		<div id="form" style="display: none;">
 			<div id="set">
-				<img id="0" src="img/pieces/WhitePawn.png"></img>
-				<img id="1" src="img/pieces/BlackPawn.png"></img><br>
-				<img id="2" src="img/pieces/WhiteKnight.png"></img>
-				<img id="3" src="img/pieces/BlackKnight.png"></img><br>
-				<img id="4" src="img/pieces/WhiteBishop.png"></img>
-				<img id="5" src="img/pieces/BlackBishop.png"></img><br>
-				<img id="6" src="img/pieces/WhiteRook.png"></img>
-				<img id="7" src="img/pieces/BlackRook.png"></img><br>
-				<img id="8" src="img/pieces/WhiteQueen.png"></img>
-				<img id="9" src="img/pieces/BlackQueen.png"></img><br>
-				<img id="10" src="img/pieces/WhiteKing.png"></img>
-				<img id="11" src="img/pieces/BlackKing.png"></img><br>
+				<img id="0" class="pos" src="img/pieces/WhitePawn.png"></img>
+				<img id="1" class="pos" src="img/pieces/BlackPawn.png"></img><br>
+				<img id="2" class="pos" src="img/pieces/WhiteKnight.png"></img>
+				<img id="3" class="pos" src="img/pieces/BlackKnight.png"></img><br>
+				<img id="4" class="pos" src="img/pieces/WhiteBishop.png"></img>
+				<img id="5" class="pos" src="img/pieces/BlackBishop.png"></img><br>
+				<img id="6" class="pos" src="img/pieces/WhiteRook.png"></img>
+				<img id="7" class="pos" src="img/pieces/BlackRook.png"></img><br>
+				<img id="8" class="pos" src="img/pieces/WhiteQueen.png"></img>
+				<img id="9" class="pos" src="img/pieces/BlackQueen.png"></img><br>
+				<img id="10" class="pos" src="img/pieces/WhiteKing.png"></img>
+				<img id="11" class="pos" src="img/pieces/BlackKing.png"></img><br>
 			</div>
 				<p> Turn </p>
 				<input id="white" type="radio" name="turn" value="white" checked> White
@@ -31,9 +28,6 @@
 				<button id='submit'> Done </button>
 		</div>
 		<br>
-		<div id="promotionBlack">
-
-		</div>
 		<br>
 		<br>
 		<button id="start"> Start game </button>

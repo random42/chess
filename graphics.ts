@@ -9,18 +9,26 @@ export class Point {
 }
 
 export class Canvas {
-	canvas : any = document.getElementById("board");
-	ctx = this.canvas.getContext("2d");
-	dist = this.canvas.clientWidth/8;
+	_canvas : any;
+	ctx : any;
+	dist : any;
 	position : Position;
 	selectedSquare : Square;
 	moves : Move[];
 	static selectedPiece : Piece;
 
 	constructor(){
-		this.canvas.height = 500;
-		this.canvas.width = 500;
 		this.position = new Position();
+	}
+
+	get canvas() {
+		return this._canvas;
+	}
+
+	set canvas(canvas : HTMLCanvasElement) {
+		this._canvas = canvas;
+		this.ctx = this._canvas.getContext("2d");
+		this.dist = this._canvas.clientWidth/8;
 	}
 
 	isAMove(square : Square) : Move {
@@ -89,6 +97,7 @@ export class Canvas {
 	drawMoves() : void {
 		var img : HTMLImageElement = new Image();
 		img.src = 'img/circle.png';
+
 		for (let m of this.moves) {
 			let p = this.squareToPx(m.to);
 			let x = Math.round(p.x+(this.dist/3));
@@ -122,7 +131,6 @@ function getMousePos(ev) : Point {
 
 function startNewGame() {
 	console.log('start');
-	canvas = new Canvas();
 	game = new Game();
 	document.getElementById("form").style.display = 'none';
 	canvas.position = game.lastPosition;
@@ -131,7 +139,6 @@ function startNewGame() {
 }
 
 function setPosition() {
-	canvas = new Canvas();
 	canvas.canvas.onclick = settingClick;
 	var x = 2;
 	canvas.drawBoard();
@@ -219,7 +226,6 @@ function playAtSpeed(milliseconds : number) {
 	}
 	else {
 		console.log(game.PGN);
-		console.log(game.termination);
 	}
 }
 
@@ -227,14 +233,13 @@ function playRandomly() {
 	if (!game) {
 		startNewGame();
 	}
-	playAtSpeed(50);
+	playAtSpeed(40);
 }
-
-
 
 document.getElementById("create").onclick = setPosition;
 document.getElementById("start").onclick = startNewGame;
 document.getElementById("submit").onclick = createPosition;
 document.getElementById("random").onclick = playRandomly;
-var canvas : Canvas;
+var canvas : Canvas = new Canvas();
+canvas.canvas = <HTMLCanvasElement>document.getElementById("board");
 var game : Game;
