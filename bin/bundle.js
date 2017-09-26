@@ -14,14 +14,8 @@ var Game = (function () {
             this.lastPosition = new Position('start');
         }
         this.findMoves();
-        var x = '?';
-        this.event = x;
-        this.site = x;
-        this.date = '????.??.??';
-        this.round = x;
-        this.white = x;
-        this.black = x;
-        this.result = '*';
+        this.tagPairs = ['Event', '?', 'Site', '?', 'Date', '????.??.??',
+            'Round', '-', 'White', '?', 'Black', '?', 'Result', '*'];
     }
     Object.defineProperty(Game.prototype, "legalMoves", {
         get: function () {
@@ -37,18 +31,65 @@ var Game = (function () {
         enumerable: true,
         configurable: true
     });
-    Game.prototype.playRandomly = function () {
-        this.playMove(this.legalMoves[Math.floor(Math.random() * this.legalMoves.length)]);
+    Object.defineProperty(Game.prototype, "termination", {
+        get: function () {
+            return this._termination;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Game.prototype.setTagPairs = function () {
+        var arr = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            arr[_i] = arguments[_i];
+        }
+        if (!arr || arr.length % 2 != 0) {
+            throw "Invalid tag pairs!";
+        }
+        ;
+        var i = 0;
+        while (i < arr.length) {
+            var present = false;
+            for (var k = 0; k < this.tagPairs.length; k += 2) {
+                if (arr[i] === this.tagPairs[k]) {
+                    this.tagPairs[k + 1] = arr[i + 1];
+                    present = true;
+                }
+            }
+            if (!present) {
+                this.tagPairs.push(arr[i], arr[i + 1]);
+            }
+            i += 2;
+        }
     };
-    Game.prototype.endOfGame = function (result, termination) {
-        if (result && termination) {
+    Game.prototype.playRandomly = function () {
+        this.playMove(this._legalMoves[Math.floor(Math.random() * this._legalMoves.length)]);
+    };
+    Game.prototype.endGame = function (result) {
+        if (result) {
             this.result = result;
-            this.termination = termination;
+            switch (result) {
+                case '1/2-1/2': {
+                    this._termination = 'Draw by agreement.';
+                    break;
+                }
+                case '0-1': {
+                    this._termination = 'White resigns.';
+                    break;
+                }
+                case '1-0': {
+                    this._termination = 'Black resigns.';
+                    break;
+                }
+                default: {
+                    throw 'Invalid result!';
+                }
+            }
         }
         else {
             if (this.fiftyMovesRule()) {
                 this.result = '1/2-1/2';
-                this.termination = '50 moves rule';
+                this._termination = '50 moves rule';
             }
             if (this.isCheckmate()) {
                 if (this.lastPosition.turn) {
@@ -57,42 +98,36 @@ var Game = (function () {
                 else {
                     this.result = '1-0';
                 }
-                this.termination = 'Checkmate';
+                this._termination = 'Checkmate';
             }
             if (this.isStalemate()) {
                 this.result = '1/2-1/2';
-                this.termination = 'Stalemate';
+                this._termination = 'Stalemate';
             }
             if (this.isInsufficientMaterial()) {
                 this.result = '1/2-1/2';
-                this.termination = 'Insufficient material';
+                this._termination = 'Insufficient material';
             }
         }
-        this.createPGN();
+        this.setTagPairs('Result', this.result);
     };
-    Game.prototype.createPGN = function () {
-        this.PGN = '';
-        this.PGN += '[Event ' + this.event + ']\n';
-        this.PGN += '[Site ' + this.site + ']\n';
-        this.PGN += '[Date ' + this.date + ']\n';
-        this.PGN += '[Round ' + this.round + ']\n';
-        this.PGN += '[White ' + this.white + ']\n';
-        this.PGN += '[Black ' + this.black + ']\n';
-        this.PGN += '[Result ' + this.result + ']\n';
-        if (this.time) {
-            this.PGN += '[Time ' + this.time + ']\n';
-        }
-        if (this.termination) {
-            this.PGN += '[Termination ' + this.termination + ']\n';
+    Game.prototype.pgn = function () {
+        var pgn = '';
+        var i = 0;
+        while (i < this.tagPairs.length) {
+            pgn += '[' + this.tagPairs[i++] + ' "' + this.tagPairs[i++] + '"]\n';
         }
         var turn = true;
-        for (var i = 0; i < this.moves.length; i++) {
+        for (var i_1 = 0; i_1 < this.moves.length; i_1++) {
             if (turn) {
-                this.PGN += ((i / 2) + 1).toString() + '. ';
+                pgn += ((i_1 / 2) + 1).toString() + '. ';
             }
-            this.PGN += this.moves[i].toString() + ' ';
+            pgn += this.moves[i_1].toString() + ' ';
             turn = !turn;
         }
+        pgn += '{ ' + this._termination + ' } ';
+        pgn += this.result;
+        return pgn;
     };
     Game.prototype.isOver = function () {
         if (this.lastPosition.isOver() || this.fiftyMovesRule()) {
@@ -124,7 +159,7 @@ var Game = (function () {
     };
     Game.prototype.findMovesFromSquare = function (square) {
         var ret = [];
-        for (var _i = 0, _a = this.legalMoves; _i < _a.length; _i++) {
+        for (var _i = 0, _a = this._legalMoves; _i < _a.length; _i++) {
             var move = _a[_i];
             if (move.from == square) {
                 ret.push(move);
@@ -187,13 +222,8 @@ var Game = (function () {
             }
         }
         if (this.isOver()) {
-            this.endOfGame();
+            this.endGame();
         }
-    };
-    Game.prototype.print = function () {
-        document.write(this.black + '<br><br>');
-        this.lastPosition.print();
-        document.write('<br>' + this.white);
     };
     return Game;
 }());
@@ -289,19 +319,32 @@ var Position = (function () {
         }
     };
     Position.prototype.searchForKings = function () {
+        var wk = 0;
+        var bk = 0;
         for (var _i = 0, _a = this.board; _i < _a.length; _i++) {
             var a = _a[_i];
             for (var _b = 0, a_3 = a; _b < a_3.length; _b++) {
                 var b = a_3[_b];
                 if (!b.isEmpty() && b.piece.type == 6) {
                     if (b.piece.side) {
+                        if (wk > 0) {
+                            throw "More than one white king found!";
+                        }
                         this.whiteKing = b;
+                        wk++;
                     }
                     else {
+                        if (bk > 0) {
+                            throw "More than one black king found!";
+                        }
                         this.blackKing = b;
+                        bk++;
                     }
                 }
             }
+        }
+        if (wk == 0 || bk == 0) {
+            throw "Put those kings man!";
         }
     };
     Position.prototype.move = function (move) {
@@ -571,30 +614,13 @@ var Position = (function () {
             for (var _b = 0, a_6 = a; _b < a_6.length; _b++) {
                 var b = a_6[_b];
                 if (!b.isEmpty() && b.piece.side == side) {
-                    if (this.findSquare(this.controls(b), s)) {
+                    if (Square.findSquare(this.controls(b), s)) {
                         return true;
                     }
                 }
             }
         }
         return false;
-    };
-    Position.prototype.findSquare = function (arr, s) {
-        var b = false;
-        for (var i = 0; i < arr.length && !b; i++) {
-            b = (arr[i] == s);
-        }
-        return b;
-    };
-    Position.pop = function (arr, index) {
-        var r = [];
-        for (var i = 0; i < index; i++) {
-            r.push(arr[i]);
-        }
-        for (var i = index + 1; i < arr.length; i++) {
-            r.push(arr[i]);
-        }
-        return r;
     };
     Position.prototype.controls = function (from) {
         var to = [];
@@ -910,6 +936,13 @@ var Square = (function () {
             }
         }
     };
+    Square.findSquare = function (arr, s) {
+        var b = false;
+        for (var i = 0; i < arr.length && !b; i++) {
+            b = (arr[i] == s);
+        }
+        return b;
+    };
     return Square;
 }());
 exports.Square = Square;
@@ -1141,6 +1174,7 @@ var Canvas = (function () {
             this._canvas = canvas;
             this.ctx = this._canvas.getContext("2d");
             this.dist = this._canvas.clientWidth / 8;
+            this.update();
         },
         enumerable: true,
         configurable: true
@@ -1239,21 +1273,25 @@ function getMousePos(ev) {
     return new Point(x, y);
 }
 function startNewGame() {
-    console.log('start');
     game = new chess_2.Game();
     document.getElementById("form").style.display = 'none';
+    document.getElementById("setWhite").style.visibility = 'hidden';
+    document.getElementById("setBlack").style.visibility = 'hidden';
     canvas.position = game.lastPosition;
     canvas.update();
     canvas.canvas.onclick = playClick;
 }
 function setPosition() {
+    deactivateButtons();
+    document.getElementById("submit").onclick = createPosition;
     canvas.canvas.onclick = settingClick;
     var x = 2;
     canvas.drawBoard();
     var div = document.getElementById("form");
     div.style.display = 'inline';
-    var pieces = document.getElementById("set");
-    pieces.style.display = "inline-block";
+    var pieces = document.getElementsByClassName("set");
+    pieces[0].style.visibility = "visible";
+    pieces[1].style.visibility = "visible";
     var setImg = [];
     var selectedImg;
     for (var x_1 = 0; x_1 < 12; x_1++) {
@@ -1274,15 +1312,18 @@ function createPosition() {
     canvas.position.whiteShort = document.getElementById('whiteShort').checked;
     canvas.position.blackLong = document.getElementById('blackLong').checked;
     canvas.position.blackShort = document.getElementById('blackShort').checked;
+    hideForms();
+    activateButtons();
     startGame(canvas.position);
 }
-function startGame(lastPosition) {
-    game = new chess_2.Game(lastPosition);
+function startGame(position) {
+    game = new chess_2.Game(position);
     game.lastPosition.searchForKings();
-    document.getElementById("form").style.display = 'none';
-    canvas.canvas.onclick = playClick;
     if (game.isOver()) {
         canvas.canvas.onclick = undefined;
+    }
+    else {
+        canvas.canvas.onclick = playClick;
     }
 }
 function pieceById(id) {
@@ -1302,6 +1343,7 @@ function playClick() {
         game.playMove(move);
         canvas.moves = undefined;
         canvas.update();
+        writeMoves();
         if (game.isOver()) {
             canvas.canvas.onclick = undefined;
         }
@@ -1325,26 +1367,77 @@ function playAtSpeed(milliseconds) {
     if (!game.isOver()) {
         setTimeout(function () {
             game.playRandomly();
+            writeMoves();
             canvas.update();
             playAtSpeed(milliseconds);
         }, milliseconds);
     }
     else {
-        console.log(game.PGN);
+        activateButtons();
     }
 }
 function playRandomly() {
-    if (!game) {
-        startNewGame();
-    }
-    playAtSpeed(40);
+    var speed = document.getElementById('speed').valueAsNumber;
+    deactivateButtons();
+    hideForms();
+    playAtSpeed(speed);
 }
-document.getElementById("create").onclick = setPosition;
-document.getElementById("start").onclick = startNewGame;
-document.getElementById("submit").onclick = createPosition;
-document.getElementById("random").onclick = playRandomly;
+function setRandomPlay() {
+    hideForms();
+    if (!game) {
+        game = new chess_2.Game();
+        canvas.position = game.lastPosition;
+        canvas.update();
+    }
+    document.getElementById("randomPlayForm").style.display = "inline";
+}
+function writeMoves() {
+    if (!game.turn) {
+        var n = (game.moves.length / 2 + 0.5).toString() + '.\t';
+        movesArea.value += n;
+        movesArea.value += game.moves[game.moves.length - 1].toString() + '\t\t';
+    }
+    else {
+        movesArea.value += game.moves[game.moves.length - 1].toString() + '\n';
+    }
+    if (game.isOver()) {
+        gameOver();
+    }
+}
+function writePGN() {
+    pgnArea.value = game.pgn();
+}
+function hideForms() {
+    document.getElementById("form").style.display = 'none';
+    document.getElementById("setWhite").style.visibility = 'hidden';
+    document.getElementById("setBlack").style.visibility = 'hidden';
+    document.getElementById("randomPlayForm").style.display = "none";
+}
+function activateButtons() {
+    document.getElementById("create").onclick = setPosition;
+    document.getElementById("start").onclick = startNewGame;
+    document.getElementById("submit").onclick = createPosition;
+    document.getElementById("randomSet").onclick = setRandomPlay;
+    document.getElementById("randomPlay").onclick = playRandomly;
+}
+function deactivateButtons() {
+    document.getElementById("create").onclick = undefined;
+    document.getElementById("start").onclick = undefined;
+    document.getElementById("submit").onclick = undefined;
+    document.getElementById("randomSet").onclick = undefined;
+    document.getElementById("randomPlay").onclick = undefined;
+}
+function gameOver() {
+    canvas.canvas.onclick = undefined;
+    game.setTagPairs('WhiteELO', '2456', 'BlackELO', '1235', 'White', 'Garry Kasparov', 'Black', 'Anatoli Karpov');
+    writePGN();
+    movesArea.value += '\n' + game.termination;
+}
 var canvas = new Canvas();
 canvas.canvas = document.getElementById("board");
 var game;
+var movesArea = document.getElementById("movesArea");
+var pgnArea = document.getElementById("pgnArea");
+activateButtons();
 
 },{"./chess":1}]},{},[2]);

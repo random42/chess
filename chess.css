@@ -6,3 +6,61 @@ img {
 	border : 1 px #FFFFFF;
 	border-style : outset;
 }
+
+canvas {
+  border: 1px solid #000000;
+  display: inline;
+}
+
+.set {
+  display: inline-block;
+  visibility: hidden;
+}
+
+.pieces {
+  height: 64px;
+  width: 64px;
+}
+
+.buttons {
+  height: 50px;
+  width: 100px;
+}
+
+.rightSide {
+  display: block;
+}
+
+#buttons {
+  margin-left: 1.5cm;
+  margin-top: 1cm;
+}
+
+#submit {
+  height: 40px;
+  width: 80px;
+}
+
+#game {
+  display: flex;
+}
+
+#speed {
+  width: 50px;
+}
+
+#randomPlayForm {
+  display: none;
+}
+
+#moves {
+  margin-left: 1.5cm;
+}
+
+#pgn {
+  margin-left: 1.5cm;
+}
+
+#moves-buttons {
+  display: inline-flex;
+}

@@ -29,6 +29,7 @@ export class Canvas {
 		this._canvas = canvas;
 		this.ctx = this._canvas.getContext("2d");
 		this.dist = this._canvas.clientWidth/8;
+		this.update();
 	}
 
 	isAMove(square : Square) : Move {
@@ -130,22 +131,26 @@ function getMousePos(ev) : Point {
 }
 
 function startNewGame() {
-	console.log('start');
 	game = new Game();
 	document.getElementById("form").style.display = 'none';
+	document.getElementById("setWhite").style.visibility = 'hidden';
+	document.getElementById("setBlack").style.visibility = 'hidden';
 	canvas.position = game.lastPosition;
 	canvas.update();
 	canvas.canvas.onclick = playClick;
 }
 
 function setPosition() {
+	deactivateButtons();
+	document.getElementById("submit").onclick = createPosition;
 	canvas.canvas.onclick = settingClick;
 	var x = 2;
 	canvas.drawBoard();
 	var div = document.getElementById("form");
 	div.style.display = 'inline';
-	var pieces = document.getElementById("set");
-	pieces.style.display = "inline-block";
+	var pieces = document.getElementsByClassName("set");
+	(<HTMLElement>pieces[0]).style.visibility = "visible";
+	(<HTMLElement>pieces[1]).style.visibility = "visible";
 	var setImg : HTMLElement[] = [];
 	var selectedImg : HTMLElement;
 	for (let x = 0;x < 12;x++) {
@@ -167,16 +172,20 @@ function createPosition() {
 	canvas.position.whiteShort = (<HTMLInputElement>document.getElementById('whiteShort')).checked;
 	canvas.position.blackLong = (<HTMLInputElement>document.getElementById('blackLong')).checked;
 	canvas.position.blackShort = (<HTMLInputElement>document.getElementById('blackShort')).checked;
+	hideForms();
+	activateButtons();
 	startGame(canvas.position);
 }
 
-function startGame(lastPosition : Position)  {
-	game = new Game(lastPosition);
+function startGame(position : Position)  {
+	game = new Game(position);
 	game.lastPosition.searchForKings();
-	document.getElementById("form").style.display = 'none';
-	canvas.canvas.onclick = playClick;
+
 	if (game.isOver()) {
 		canvas.canvas.onclick = undefined;
+	}
+	else {
+		canvas.canvas.onclick = playClick;
 	}
 }
 
@@ -198,6 +207,7 @@ function playClick() {
 		game.playMove(move);
 		canvas.moves = undefined;
 		canvas.update();
+		writeMoves();
 		if (game.isOver()) {canvas.canvas.onclick = undefined}
 	}
 	else {
@@ -220,26 +230,83 @@ function playAtSpeed(milliseconds : number) {
 	if (!game.isOver()) {
 		setTimeout(function() {
 			game.playRandomly();
+			writeMoves();
 			canvas.update();
 			playAtSpeed(milliseconds);
 		},milliseconds);
 	}
-	else {
-		console.log(game.PGN);
-	}
+	else {activateButtons()}
 }
 
 function playRandomly() {
-	if (!game) {
-		startNewGame();
-	}
-	playAtSpeed(40);
+	var speed = (<HTMLInputElement>document.getElementById('speed')).valueAsNumber;
+	deactivateButtons();
+	hideForms();
+	playAtSpeed(speed);
 }
 
-document.getElementById("create").onclick = setPosition;
-document.getElementById("start").onclick = startNewGame;
-document.getElementById("submit").onclick = createPosition;
-document.getElementById("random").onclick = playRandomly;
+function setRandomPlay() {
+	hideForms();
+	if (!game) {
+		game = new Game();
+		canvas.position = game.lastPosition;
+		canvas.update();
+	}
+	document.getElementById("randomPlayForm").style.display = "inline";
+}
+
+function writeMoves() {
+	if (!game.turn) {
+		let n = (game.moves.length/2+0.5).toString() + '.\t';
+		movesArea.value += n;
+		movesArea.value += game.moves[game.moves.length-1].toString() + '\t\t';
+	}
+	else {
+		movesArea.value += game.moves[game.moves.length-1].toString() + '\n';
+	}
+	if (game.isOver()) {
+		gameOver();
+	}
+}
+
+function writePGN() {
+	pgnArea.value = game.pgn();
+}
+
+function hideForms() {
+	document.getElementById("form").style.display = 'none';
+	document.getElementById("setWhite").style.visibility = 'hidden';
+	document.getElementById("setBlack").style.visibility = 'hidden';
+	document.getElementById("randomPlayForm").style.display = "none";
+}
+
+function activateButtons() {
+	document.getElementById("create").onclick = setPosition;
+	document.getElementById("start").onclick = startNewGame;
+	document.getElementById("submit").onclick = createPosition;
+	document.getElementById("randomSet").onclick = setRandomPlay;
+	document.getElementById("randomPlay").onclick = playRandomly;
+}
+
+function deactivateButtons() {
+	document.getElementById("create").onclick = undefined;
+	document.getElementById("start").onclick = undefined;
+	document.getElementById("submit").onclick = undefined;
+	document.getElementById("randomSet").onclick = undefined;
+	document.getElementById("randomPlay").onclick = undefined;
+}
+
+function gameOver() {
+	canvas.canvas.onclick = undefined;
+	game.setTagPairs('WhiteELO','2456','BlackELO','1235','White','Garry Kasparov','Black','Anatoli Karpov');
+	writePGN();
+	movesArea.value += '\n'+game.termination;
+}
+
+
 var canvas : Canvas = new Canvas();
 canvas.canvas = <HTMLCanvasElement>document.getElementById("board");
 var game : Game;
+var movesArea = <HTMLTextAreaElement>document.getElementById("movesArea");
+var pgnArea = <HTMLTextAreaElement>document.getElementById("pgnArea");
+activateButtons();

@@ -3,23 +3,12 @@ export class Game {
 	moves : Move[];
 	positions : Position[];
 
-	event : string;
-	site : string;
-	date : string;
-	round : string;
-	white : string;
-	black : string;
-	result : string;
-	time : string;
-	termination : string;
-	FEN : string;
-	whiteRating : number;
-	blackRating : number;
-
-	PGN : string;
+	private tagPairs : string[];
+	private FEN : string;
 	private _legalMoves : Move[];
 	private moveCounter : number;
-
+	private result : string;
+	private _termination : string;
 
 	constructor(board? : Position) {
 		this.moveCounter = 0;
@@ -33,14 +22,8 @@ export class Game {
 			this.lastPosition = new Position('start');
 		}
 		this.findMoves();
-		let x = '?';
-		this.event = x;
-		this.site = x;
-		this.date = '????.??.??';
-		this.round = x;
-		this.white = x;
-		this.black = x;
-		this.result = '*';
+		this.tagPairs = ['Event','?','Site','?','Date','????.??.??',
+		'Round','-','White','?','Black','?','Result','*'];
 	}
 
 	get legalMoves() : Move[] {
@@ -51,19 +34,57 @@ export class Game {
 		return this.lastPosition.turn;
 	}
 
-	playRandomly() : void {
-		this.playMove(this.legalMoves[Math.floor(Math.random() * this.legalMoves.length)]);
+	get termination() : string {
+		return this._termination;
 	}
 
-	endOfGame(result? : string, termination? : string) : void {
-		if (result && termination) {
+	setTagPairs(...arr : string[]) : void {
+		if (!arr || arr.length%2 != 0) {throw "Invalid tag pairs!"};
+		let i = 0;
+		while (i < arr.length) {
+			let present = false;
+			for (let k = 0;k < this.tagPairs.length;k+=2) {
+				if (arr[i] === this.tagPairs[k]) {
+					this.tagPairs[k+1] = arr[i+1];
+					present = true;
+				}
+			}
+			if (!present) {
+				this.tagPairs.push(arr[i],arr[i+1]);
+			}
+			i+=2;
+		}
+	}
+
+	playRandomly() : void {
+		this.playMove(this._legalMoves[Math.floor(Math.random() * this._legalMoves.length)]);
+	}
+
+	endGame(result? : string) {
+		if (result) {
 			this.result = result;
-			this.termination = termination;
+			switch (result) {
+				case '1/2-1/2': {
+					this._termination = 'Draw by agreement.';
+					break;
+				}
+				case '0-1': {
+					this._termination = 'White resigns.';
+					break;
+				}
+				case '1-0': {
+					this._termination = 'Black resigns.';
+					break;
+				}
+				default: {
+					throw 'Invalid result!';
+				}
+			}
 		}
 		else {
 			if (this.fiftyMovesRule()) {
 				this.result = '1/2-1/2';
-				this.termination = '50 moves rule';
+				this._termination = '50 moves rule';
 			}
 			if (this.isCheckmate()) {
 				if (this.lastPosition.turn) {
@@ -72,43 +93,37 @@ export class Game {
 				else {
 					this.result = '1-0';
 				}
-				this.termination = 'Checkmate';
+				this._termination = 'Checkmate';
 			}
 			if (this.isStalemate()) {
 				this.result = '1/2-1/2';
-				this.termination = 'Stalemate';
+				this._termination = 'Stalemate';
 			}
 			if (this.isInsufficientMaterial()) {
 				this.result = '1/2-1/2';
-				this.termination = 'Insufficient material';
+				this._termination = 'Insufficient material';
 			}
 		}
-		this.createPGN();
+		this.setTagPairs('Result',this.result);
 	}
 
-	createPGN() : void {
-		this.PGN = '';
-		this.PGN += '[Event '+this.event+']\n';
-		this.PGN += '[Site '+this.site+']\n';
-		this.PGN += '[Date '+this.date+']\n';
-		this.PGN += '[Round '+this.round+']\n';
-		this.PGN += '[White '+this.white+']\n';
-		this.PGN += '[Black '+this.black+']\n';
-		this.PGN += '[Result '+this.result+']\n';
-		if (this.time) {
-			this.PGN += '[Time '+this.time+']\n';
-		}
-		if (this.termination) {
-			this.PGN += '[Termination '+this.termination+']\n';
+	pgn() : string {
+		var pgn = '';
+		let i = 0;
+		while (i < this.tagPairs.length) {
+			pgn += '['+this.tagPairs[i++]+' "'+this.tagPairs[i++]+'"]\n';
 		}
 		let turn = true;
 		for (let i=0;i < this.moves.length;i++) {
 			if (turn) {
-				this.PGN += ((i/2)+1).toString() + '. '
+				pgn += ((i/2)+1).toString() + '. '
 			}
-			this.PGN += this.moves[i].toString() + ' ';
+			pgn += this.moves[i].toString() + ' ';
 			turn = !turn;
 		}
+		pgn += '{ '+this._termination+' } ';
+		pgn += this.result;
+		return pgn;
 	}
 
 	isOver() : boolean {
@@ -146,8 +161,8 @@ export class Game {
 	}
 
 	findMovesFromSquare(square : Square) : Move[] {
-		var ret : Move[] = []
-		for (let move of this.legalMoves) {
+		var ret : Move[] = [];
+		for (let move of this._legalMoves) {
 			if (move.from == square) {
 				ret.push(move);
 			}
@@ -207,14 +222,7 @@ export class Game {
 				move.name += "+";
 			}
 		}
-		if (this.isOver()) {this.endOfGame()}
-	}
-
-	print() : void {
-		document.write(this.black + '<br><br>');
-		this.lastPosition.print();
-		document.write('<br>' + this.white);
-
+		if (this.isOver()) {this.endGame()}
 	}
 }
 
@@ -242,6 +250,7 @@ export class Position {
 			this.startingPosition();
 		}
 	}
+
 
 
 	isOver() : boolean {
@@ -324,17 +333,26 @@ export class Position {
 	}
 
 	searchForKings() : void {
+		let wk = 0;
+		let bk = 0;
 		for(let a of this.board) {
 			for (let b of a) {
 				if (!b.isEmpty() && b.piece.type == 6) {
 					if (b.piece.side) {
+						if (wk > 0) {throw "More than one white king found!"}
 						this.whiteKing = b;
+						wk++;
 					}
 					else {
+						if (bk > 0) {throw "More than one black king found!"}
 						this.blackKing = b;
+						bk++;
 					}
 				}
 			}
+		}
+		if (wk == 0 || bk == 0) {
+			throw "Put those kings man!";
 		}
 	}
 
@@ -607,32 +625,13 @@ export class Position {
 		for (let a of this.board) {
 			for (let b of a) {
 				if (!b.isEmpty() && b.piece.side == side) {
-					if (this.findSquare(this.controls(b),s)) {
+					if (Square.findSquare(this.controls(b),s)) {
 						return true;
 					}
 				}
 			}
 		}
 		return false;
-	}
-
-	findSquare(arr : Square[], s : Square) : boolean {
-		var b = false;
-		for (let i = 0; i < arr.length && !b;i++) {
-			b = (arr[i] == s);
-		}
-		return b;
-	}
-
-	static pop(arr : any[],index : number) : any[] {
-		var r = [];
-		for (let i = 0; i < index;i++) {
-			r.push(arr[i]);
-		}
-		for (let i = index+1; i < arr.length;i++) {
-			r.push(arr[i]);
-		}
-		return r;
 	}
 
 	controls(from : Square) : Square[] {	// returns every square that the piece of the 'from' square controls
@@ -953,6 +952,14 @@ export class Square {
 				this.piece = new Piece(false,6);
 			}
 		}
+	}
+
+	static findSquare(arr : Square[], s : Square) : boolean {
+		var b = false;
+		for (let i = 0; i < arr.length && !b;i++) {
+			b = (arr[i] == s);
+		}
+		return b;
 	}
 }
 

@@ -2,22 +2,52 @@
 <html lang="en">
 	<body>
 	<link rel="stylesheet" type="text/css" href="chess.css">
-		<canvas id="board" width="512" height="512" style="border:1px solid #000000;"></canvas>
-		<div id="form" style="display: none;">
-			<div id="set">
-				<img id="0" class="pos" src="img/pieces/WhitePawn.png"></img>
-				<img id="1" class="pos" src="img/pieces/BlackPawn.png"></img><br>
-				<img id="2" class="pos" src="img/pieces/WhiteKnight.png"></img>
-				<img id="3" class="pos" src="img/pieces/BlackKnight.png"></img><br>
-				<img id="4" class="pos" src="img/pieces/WhiteBishop.png"></img>
-				<img id="5" class="pos" src="img/pieces/BlackBishop.png"></img><br>
-				<img id="6" class="pos" src="img/pieces/WhiteRook.png"></img>
-				<img id="7" class="pos" src="img/pieces/BlackRook.png"></img><br>
-				<img id="8" class="pos" src="img/pieces/WhiteQueen.png"></img>
-				<img id="9" class="pos" src="img/pieces/BlackQueen.png"></img><br>
-				<img id="10" class="pos" src="img/pieces/WhiteKing.png"></img>
-				<img id="11" class="pos" src="img/pieces/BlackKing.png"></img><br>
+	<div id="setWhite" class="set">
+		<img id="0" class="pieces" src="img/pieces/WhitePawn.png"></img>
+		<img id="2" class="pieces" src="img/pieces/WhiteKnight.png"></img>
+		<img id="4" class="pieces" src="img/pieces/WhiteBishop.png"></img>
+		<img id="6" class="pieces" src="img/pieces/WhiteRook.png"></img>
+		<img id="8" class="pieces" src="img/pieces/WhiteQueen.png"></img>
+		<img id="10" class="pieces" src="img/pieces/WhiteKing.png"></img>
+	</div>
+	<div id="game">
+		<canvas id="board" width="512" height="512"></canvas>
+		<div id="rightSide">
+			<div id="moves-buttons">
+				<div id="moves">
+					<h3>Moves</h3>
+					<textarea id="movesArea" rows="20" cols="25" readonly></textarea>
+				</div>
+				<div id="buttons">
+					<button id="start" class="buttons"> New game </button>
+					<br/>
+					<br/>
+					<button id="create" class="buttons"> Set position </button>
+					<br/>
+					<br/>
+					<button id="randomSet" class="buttons"> Play randomly </button>
+					<div id="randomPlayForm">
+						Move every
+						<input type="number" id="speed" value="100"/>ms
+						<button id="randomPlay">Done</button>
+					</div>
+				</div>
 			</div>
+			<div id="pgn">
+				<h3>PGN</h3>
+				<textarea id="pgnArea" rows="9" cols="50" readonly></textarea>
+			</div>
+		</div>
+	</div>
+	<div id="setBlack" class="set">
+		<img id="1" class="pieces" src="img/pieces/BlackPawn.png"></img>
+		<img id="3" class="pieces" src="img/pieces/BlackKnight.png"></img>
+		<img id="5" class="pieces" src="img/pieces/BlackBishop.png"></img>
+		<img id="7" class="pieces" src="img/pieces/BlackRook.png"></img>
+		<img id="9" class="pieces" src="img/pieces/BlackQueen.png"></img>
+		<img id="11" class="pieces" src="img/pieces/BlackKing.png"></img>
+	</div>
+		<div id="form" style="display:none;">
 				<p> Turn </p>
 				<input id="white" type="radio" name="turn" value="white" checked> White
 				<input id="black" type="radio" name="turn" value="black"> Black
@@ -25,14 +55,8 @@
 				<input id="whiteShort" type="checkbox" />whiteShort
 				<input id="blackLong" type="checkbox" />longBlack
 				<input id="blackShort" type="checkbox" />shortBlack
-				<button id='submit'> Done </button>
+				<button id="submit"> Done </button>
 		</div>
-		<br>
-		<br>
-		<br>
-		<button id="start"> Start game </button>
-		<button id="create"> Set position </button>
-		<button id="random"> Play randomly </button>
 		<script src="bin/bundle.js"></script>
 	</body>
 </html>
