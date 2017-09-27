@@ -1429,7 +1429,6 @@ function deactivateButtons() {
 }
 function gameOver() {
     canvas.canvas.onclick = undefined;
-    game.setTagPairs('WhiteELO', '2456', 'BlackELO', '1235', 'White', 'Garry Kasparov', 'Black', 'Anatoli Karpov');
     writePGN();
     movesArea.value += '\n' + game.termination;
 }
