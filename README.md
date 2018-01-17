@@ -1,6 +1,8 @@
 # chess
 Basic chess app for playing offline.
 
+![alt text](https://image.ibb.co/kMd0NR/chess.png "github.com/robertosero/chess")
+
 # How to play
 
 Clone the repository:
